@@ -1,8 +1,17 @@
 # Crypto-pyfile
+### Pseudo-Random Number Generator
+* LFSR
+* MT19937
 
-* AES
-	* CBC Attack
-	* Padding Oracle
-	* imitate CFB segment by ECB
+## Synchronous Stream Ciphers
 * RC4
+
+### Feistel Network
 * XTea
+* DES
+
+### Substitution-Permutation Network
+* AES
+  * CBC_Bit-Flipping
+  * CBC_Padding-Oracle
+  * imitate CFB segment by ECB

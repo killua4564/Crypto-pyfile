@@ -18,6 +18,10 @@ class AES:
         0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
     )
 
+    """sage
+    F.<x> = PolynomialRing(GF(2**8))
+    gal2[i] = ploy_to_int(int_to_ploy(i, x) * int_to_ploy(2, x) % (x^4 + 1))
+    """
     gal2: tuple[int] = (
         0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e,
         0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3a, 0x3c, 0x3e,
@@ -37,6 +41,10 @@ class AES:
         0xfb, 0xf9, 0xff, 0xfd, 0xf3, 0xf1, 0xf7, 0xf5, 0xeb, 0xe9, 0xef, 0xed, 0xe3, 0xe1, 0xe7, 0xe5,
     )
 
+    """sage
+    F.<x> = PolynomialRing(GF(2**8))
+    gal3[i] = ploy_to_int(int_to_ploy(i, x) * int_to_ploy(3, x) % (x^4 + 1))
+    """
     gal3: tuple[int] = (
         0x00, 0x03, 0x06, 0x05, 0x0c, 0x0f, 0x0a, 0x09, 0x18, 0x1b, 0x1e, 0x1d, 0x14, 0x17, 0x12, 0x11,
         0x30, 0x33, 0x36, 0x35, 0x3c, 0x3f, 0x3a, 0x39, 0x28, 0x2b, 0x2e, 0x2d, 0x24, 0x27, 0x22, 0x21,
@@ -56,73 +64,97 @@ class AES:
         0x0b, 0x08, 0x0d, 0x0e, 0x07, 0x04, 0x01, 0x02, 0x13, 0x10, 0x15, 0x16, 0x1f, 0x1c, 0x19, 0x1a,
     )
 
+    """sage
+    F.<x> = PolynomialRing(GF(2))
+    rc[i] = ploy_to_int(x^(i-1) % (x^8 + x^4 + x^3 + x + 1))
+    """
     rcon: tuple[int] = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c)
 
     def __init__(self, key: list[int]):
-        self.round_keys: list[list[int]] = [[0] * 16 for _ in range(11)]
-        self.round_keys[0] = key
+        self.round_keys = self.generate_round_keys(list(key))
 
-        for i in range(1, 11):
-            key_state: list[int] = self._sub_bytes(self.round_keys[i-1][-3:] + [self.round_keys[i-1][-4]])
-            key_state[0] = key_state[0] ^ self.rcon[i-1]
-            for j in range(4):
-                key_state[j] = key_state[j] ^ self.round_keys[i-1][j]
-            for j in range(4, 16):
-                key_state.append(key_state[j-4] ^ self.round_keys[i-1][j])
-            self.round_keys[i] = key_state
+    @classmethod
+    def generate_round_keys(cls, state: list[int]) -> list[list[int]]:
+        round_keys: list[list[int]] = [list(state)]
+        for round_idx in range(10):
+            round_state: list[int] = cls._sub_bytes(cls._rot_bytes(state[-4:]))
+            round_state[0] = round_state[0] ^ cls.rcon[round_idx]
+            for idx in range(16):
+                state[idx] = state[idx] ^ round_state[idx % 4]
+                if idx % 4 == 3:
+                    round_state = state[idx-3:idx+1]
+            round_keys.append(list(state))
+        return round_keys
 
-    def _sub_bytes(self, state: list[int]) -> list[int]:
-        return [self.s_box[i] for i in state]
+    @classmethod
+    def _rot_bytes(cls, state: list[int]) -> list[int]:
+        return state[1:] + [state[0]]
 
-    def _shift_rows(self, state: list[int]) -> list[int]:
+    @classmethod
+    def _sub_bytes(cls, state: list[int]) -> list[int]:
+        return [cls.s_box[i] for i in state]
+
+    @classmethod
+    def _shift_rows(cls, state: list[int]) -> list[int]:
         state[1], state[5], state[9], state[13] = state[5], state[9], state[13], state[1]
         state[2], state[6], state[10], state[14] = state[10], state[14], state[2], state[6]
         state[3], state[7], state[11], state[15] = state[15], state[3], state[7], state[11]
         return state
 
-    def _mix_columns(self, state: list[int]) -> list[int]:
+    """sage
+    F.<x> = PolynomialRing(GF(2**8))
+    params = [[2, 3, 1, 1], [1, 2, 3, 1], [1, 1, 2, 3], [3, 1, 1, 2]]
+    return [
+        poly_to_int(sum(
+            int_to_ploy(i, x) * int_to_ploy(j, x) % (x^4 + 1)
+            for i, j in zip(_state, _params)
+        ) % (x^4 + 1))
+        for _state, _params in zip(chunk(state), params * 4)
+    ]
+    """
+    @classmethod
+    def _mix_columns(cls, state: list[int]) -> list[int]:
         return [
-            self.gal2[state[0]] ^ self.gal3[state[1]] ^ state[2] ^ state[3],
-            state[0] ^ self.gal2[state[1]] ^ self.gal3[state[2]] ^ state[3],
-            state[0] ^ state[1] ^ self.gal2[state[2]] ^ self.gal3[state[3]],
-            self.gal3[state[0]] ^ state[1] ^ state[2] ^ self.gal2[state[3]],
+            cls.gal2[state[0]] ^ cls.gal3[state[1]] ^ state[2] ^ state[3],
+            state[0] ^ cls.gal2[state[1]] ^ cls.gal3[state[2]] ^ state[3],
+            state[0] ^ state[1] ^ cls.gal2[state[2]] ^ cls.gal3[state[3]],
+            cls.gal3[state[0]] ^ state[1] ^ state[2] ^ cls.gal2[state[3]],
 
-            self.gal2[state[4]] ^ self.gal3[state[5]] ^ state[6] ^ state[7],
-            state[4] ^ self.gal2[state[5]] ^ self.gal3[state[6]] ^ state[7],
-            state[4] ^ state[5] ^ self.gal2[state[6]] ^ self.gal3[state[7]],
-            self.gal3[state[4]] ^ state[5] ^ state[6] ^ self.gal2[state[7]],
+            cls.gal2[state[4]] ^ cls.gal3[state[5]] ^ state[6] ^ state[7],
+            state[4] ^ cls.gal2[state[5]] ^ cls.gal3[state[6]] ^ state[7],
+            state[4] ^ state[5] ^ cls.gal2[state[6]] ^ cls.gal3[state[7]],
+            cls.gal3[state[4]] ^ state[5] ^ state[6] ^ cls.gal2[state[7]],
 
-            self.gal2[state[8]] ^ self.gal3[state[9]] ^ state[10] ^ state[11],
-            state[8] ^ self.gal2[state[9]] ^ self.gal3[state[10]] ^ state[11],
-            state[8] ^ state[9] ^ self.gal2[state[10]] ^ self.gal3[state[11]],
-            self.gal3[state[8]] ^ state[9] ^ state[10] ^ self.gal2[state[11]],
+            cls.gal2[state[8]] ^ cls.gal3[state[9]] ^ state[10] ^ state[11],
+            state[8] ^ cls.gal2[state[9]] ^ cls.gal3[state[10]] ^ state[11],
+            state[8] ^ state[9] ^ cls.gal2[state[10]] ^ cls.gal3[state[11]],
+            cls.gal3[state[8]] ^ state[9] ^ state[10] ^ cls.gal2[state[11]],
 
-            self.gal2[state[12]] ^ self.gal3[state[13]] ^ state[14] ^ state[15],
-            state[12] ^ self.gal2[state[13]] ^ self.gal3[state[14]] ^ state[15],
-            state[12] ^ state[13] ^ self.gal2[state[14]] ^ self.gal3[state[15]],
-            self.gal3[state[12]] ^ state[13] ^ state[14] ^ self.gal2[state[15]],
+            cls.gal2[state[12]] ^ cls.gal3[state[13]] ^ state[14] ^ state[15],
+            state[12] ^ cls.gal2[state[13]] ^ cls.gal3[state[14]] ^ state[15],
+            state[12] ^ state[13] ^ cls.gal2[state[14]] ^ cls.gal3[state[15]],
+            cls.gal3[state[12]] ^ state[13] ^ state[14] ^ cls.gal2[state[15]],
         ]
 
-    def _add_round_key(self, state: list[int], round_idx: int) -> list[int]:
+    @classmethod
+    def _add_round_key(cls, state: list[int], round_key: list[int]) -> list[int]:
         for i in range(16):
-            state[i] = state[i] ^ self.round_keys[round_idx][i]
+            state[i] = state[i] ^ round_key[i]
         return state
 
     def encrypt(self, plaintext: list[int]) -> list[int]:
         state = list(plaintext)
-        state = self._add_round_key(state, 0)
+        state = self._add_round_key(state, self.round_keys[0])
         for round_idx in range(1, 11):
             state = self._sub_bytes(state)
             state = self._shift_rows(state)
             if round_idx < 10:
                 state = self._mix_columns(state)
-            state = self._add_round_key(state, round_idx)
+            state = self._add_round_key(state, self.round_keys[round_idx])
         return state
 
-if __name__ == '__main__':
-    # k = [0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f]
-    # p = [0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff]
+if __name__ == "__main__":
     k = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
-    p = [0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x7, 0x34]
-    ciphertext = AES(k).encrypt(p)
-    print(bytes(ciphertext).hex())
+    p = [0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34]
+    c = [0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32]
+    assert AES(k).encrypt(p) == c
