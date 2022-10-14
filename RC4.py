@@ -1,4 +1,3 @@
-import copy
 import typing
 
 
@@ -17,7 +16,7 @@ class RC4:
     @staticmethod
     def _PRGA(s_box: list[int]) -> typing.Generator[int, None, None]:
         i, j = 0, 0
-        s_box = copy.copy(s_box)
+        s_box = s_box.copy()
         while True:
             i = (i + 1) % 256
             j = (j + s_box[i]) % 256
@@ -26,6 +25,7 @@ class RC4:
 
     def encrypt(self, plaintext: bytes) -> bytes:
         return bytes(i ^ j for i, j in zip(plaintext, self._PRGA(self.s_box)))
+
 
 if __name__ == "__main__":
     p = b"the brown fox jumped over the lazy dog"

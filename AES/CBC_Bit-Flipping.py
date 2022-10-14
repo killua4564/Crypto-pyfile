@@ -24,11 +24,11 @@ if __name__ == "__main__":
     ct = AES.new(key, AES.MODE_CBC, iv).encrypt(pt)
     print(f"Before attack ciphertext: {ct}")
 
-    pt = AES.new(key, AES.MODE_CBC, iv).decrypt(iv + ct)[16:]
+    pt = AES.new(key, AES.MODE_CBC, iv).decrypt(ct)
     print(f"Before attack plaintext: {pt}")
 
-    chg_ct = attack(ct)
-    print(f"After attack ciphertext: {chg_ct}")
+    hacked_ct = attack(ct)
+    print(f"After attack ciphertext: {hacked_ct}")
 
-    pt = AES.new(key, AES.MODE_CBC, iv).decrypt(iv + chg_ct)[16:]
-    print(f"After attack plaintext: {pt}")
+    hacked_pt = AES.new(key, AES.MODE_CBC, iv).decrypt(hacked_ct)
+    print(f"After attack plaintext: {hacked_pt}")

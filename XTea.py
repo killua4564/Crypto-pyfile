@@ -1,22 +1,30 @@
+import abc
 import struct
 
 
-class Cipher:
+class Cipher(abc.ABC):
     @staticmethod
     def pad(text: bytes) -> bytes:
         padding = 16 - (len(text) % 16)
-        return text + bytes([padding] * padding)
+        return text + bytes([padding]) * padding
 
     @staticmethod
     def unpad(text: bytes) -> bytes:
         padding = text[-1]
-        assert padding <= 16
-        for char in text[-padding:]:
-            assert char == padding
+        assert 0 < padding <= 16
+        assert text.endswith(bytes([padding]) * padding)
         return text[:-padding]
 
+    @abc.abstractmethod
+    def encrypt(self, plaintext: bytes) -> bytes:
+        raise NotImplementedError
 
-class XTea(Cipher):
+    @abc.abstractmethod
+    def decrypt(self, ciphertext: bytes) -> bytes:
+        raise NotImplementedError
+
+
+class XTEA(Cipher):
     def __init__(self, key: int, rounds: int):
         assert len(key) == 16
         assert int(rounds) > 0
@@ -53,7 +61,7 @@ if __name__ == "__main__":
     p = b"the brown fox jumped over the lazy dog"
     k = b"\xd3\xd3a\x15Y\x9dS\xee\xb0A<:\x81\x8e\x12\x0b"
 
-    xtea = XTea(k, 32)
+    xtea = XTEA(k, 32)
     c = xtea.encrypt(p)
     print(f"cipher text: {c}")
 

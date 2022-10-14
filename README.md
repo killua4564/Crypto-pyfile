@@ -7,7 +7,7 @@
 * RC4
 
 ### Feistel Network
-* XTea
+* XTEA
 * DES
 
 ### Substitution-Permutation Network
