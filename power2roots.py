@@ -2,6 +2,7 @@ import functools
 import itertools
 import typing
 
+import gmpy2
 from Crypto.Util.number import inverse
 
 
@@ -10,7 +11,7 @@ def chinese_remainder(n: tuple[int], r: tuple[int]) -> int:
     result = 0
     prod = functools.reduce(lambda a, b: a * b, n)
     for ni, ri in zip(n, r):
-        Ni = prod // ni
+        Ni = prod // ni  # pylint: disable=C0103
         result += ri * inverse(Ni, ni) * Ni
     return result % prod
 
@@ -22,7 +23,7 @@ def legendre_symbol(a: int, p: int) -> int:
 
 
 @functools.cache
-def tonelli_shanks(a: int, p: int) -> typing.Optional[int]:
+def tonelli_shanks(a: int, p: int) -> int | None:
     a = a % p
     if a in (0, 1):
         return a
@@ -30,11 +31,10 @@ def tonelli_shanks(a: int, p: int) -> typing.Optional[int]:
     if p == 2 or legendre_symbol(a, p) != 1:
         return None
 
-    if p % 4 == 3:  # p+1 mod 4 = 0
-        """ a ** (p-1)/2 = 1
-        ==> a ** (p+1)/2 = a
-        ==> (a ** (p+1)/4) ** 2 = a
-        """
+    if p % 4 == 3:  # p + 1 mod 4 = 0
+        # a ** (p - 1) / 2 = 1
+        # ==> a ** (p + 1) / 2 = a
+        # ==> (a ** (p + 1) / 4) ** 2 = a
         return pow(a, (p + 1) // 4, p)
 
     # find quadratic nonresidue
@@ -42,7 +42,7 @@ def tonelli_shanks(a: int, p: int) -> typing.Optional[int]:
     while legendre_symbol(z, p) != -1:
         z += 1
 
-    # factor p-1 into Q * 2**S
+    # factor p - 1 into Q * 2 ** S
     q, s = p - 1, 0
     while q % 2 == 0:
         s += 1
@@ -54,18 +54,18 @@ def tonelli_shanks(a: int, p: int) -> typing.Optional[int]:
     m = s
 
     while True:
-        # find R**2 = nt and t = 1
+        # find R ** 2 = nt and t = 1
         if t == 1:
             return r
 
         # find least i to try
         i = 0
-        while pow(t, 2**i, p) != 1:
+        while pow(t, 2 ** i, p) != 1:
             i += 1
 
         b = pow(c, 2 ** (m - i - 1), p)
 
-        # because of R**2 = ntb**2, so t = tb**2
+        # because of R ** 2 = n * t * b ** 2, so t = t * b ** 2
         r = r * b % p
         t = t * pow(b, 2, p) % p
 
@@ -74,21 +74,18 @@ def tonelli_shanks(a: int, p: int) -> typing.Optional[int]:
         m = i
 
 
-def power2roots(a: int, modulars: tuple[int], k: int) -> typing.Generator[int, None, None]:
+def power2roots(a: int, modulars: typing.Iterable[int], k: int) -> typing.Generator[int, None, None]:
     if k == 0: 
         yield a
         return
 
-    for i in power2roots(a, modulars, k-1):
-        remainders: tuple[typing.Optional[int]] = tuple(
-            tonelli_shanks(i, p) for p in modulars
-        )
-
+    for i in power2roots(a, modulars, k - 1):
+        remainders: tuple[int | None] = tuple(tonelli_shanks(i, p) for p in modulars)
         if not all(remainders):
             return
 
         for remainder in itertools.product(*[
-            (r, m-r) for m, r in zip(modulars, remainders)
+            (r, m - r) for m, r in zip(modulars, remainders)
         ]):
             yield chinese_remainder(modulars, remainder)
 
@@ -96,12 +93,11 @@ def power2roots(a: int, modulars: tuple[int], k: int) -> typing.Generator[int, N
 def main():
     e = 8
     n = 36698059413399807859498533311
-
-    a = 29390284442190568750119061394  # pow(x, e, n)
+    c = 29390284442190568750119061394  # pow(m, e, n)
     modulars: tuple[int] = (2620668341, 3528051199, 3969137629)
-    for x in power2roots(a, modulars, 3):  # log2(e) = 3
-        assert pow(x, e, n) == a
-        print(x)
+    for m in power2roots(c, modulars, int(gmpy2.log2(e))):
+        assert pow(m, e, n) == c
+        print(m)
 
 
 if __name__ == "__main__":

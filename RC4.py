@@ -3,10 +3,10 @@ import typing
 
 class RC4:
     def __init__(self, key: bytes):
-        self.s_box: list[int] = self._KSA(list(key))
+        self.s_box: list[int] = self.KSA(list(key))
 
     @staticmethod
-    def _KSA(key: list[int]) -> list[int]:
+    def KSA(key: list[int]) -> list[int]:
         s_box, j = list(range(256)), 0
         for i in range(256):
             j = (j + s_box[i] + key[i % len(key)]) % 256
@@ -14,7 +14,7 @@ class RC4:
         return s_box
 
     @staticmethod
-    def _PRGA(s_box: list[int]) -> typing.Generator[int, None, None]:
+    def PRGA(s_box: list[int]) -> typing.Generator[int, None, None]:
         i, j = 0, 0
         s_box = s_box.copy()
         while True:
@@ -24,7 +24,7 @@ class RC4:
             yield s_box[(s_box[i] + s_box[j]) % 256]
 
     def encrypt(self, plaintext: bytes) -> bytes:
-        return bytes(i ^ j for i, j in zip(plaintext, self._PRGA(self.s_box)))
+        return bytes(i ^ j for i, j in zip(plaintext, self.PRGA(self.s_box)))
 
 
 if __name__ == "__main__":

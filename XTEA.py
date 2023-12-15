@@ -57,6 +57,7 @@ class XTEA(Cipher):
             plaintext += struct.pack("<2L", v0, v1)
         return self.unpad(plaintext)
 
+
 if __name__ == "__main__":
     p = b"the brown fox jumped over the lazy dog"
     k = b"\xd3\xd3a\x15Y\x9dS\xee\xb0A<:\x81\x8e\x12\x0b"

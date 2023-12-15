@@ -1,3 +1,4 @@
+# pylint: disable = C0103
 class MT19937:
     MASK: int = (1 << 32) - 1
 
@@ -16,7 +17,7 @@ class MT19937:
             y = ((self.MT[idx] & 0x80000000) + (self.MT[(idx + 1) % 624] & 0x7FFFFFFF)) & self.MASK
             self.MT[idx] = (y >> 1) ^ self.MT[(idx + 397) % 624] ^ (0x9908B0DF * (y % 2))
 
-    def extract_number(self):
+    def extract_number(self) -> int:
         if self.index == 0:
             self.generate_numbers()
         y = self.MT[self.index]

@@ -6,7 +6,7 @@ class LFSR:
     SIZE: int = 16
 
     register: int
-    taps: typing.Tuple[int]
+    taps: tuple[int, ...]
 
     def __init__(
         self,
